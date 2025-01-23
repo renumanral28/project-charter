@@ -36,3 +36,8 @@ http://localhost:8081/1/rewards?month=2024-12
 To log into the H2 database to check the data in tables use following link:
 http://localhost:8081/h2  
 JDBC URL =jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MYSQL
+
+# Postman Snapshots 
+![Screenshot 2025-01-23 094648](https://github.com/user-attachments/assets/f0665c00-d7f5-4359-8b96-2a13529c782b)
+![Screenshot 2025-01-23 115334](https://github.com/user-attachments/assets/64839601-0353-4e41-83dc-4f22371d82da)
+![Screenshot 2025-01-23 134109](https://github.com/user-attachments/assets/ae6f0de4-bc9a-461f-9b15-110f2a4d9033)
