@@ -1,51 +1,51 @@
 package com.rewards.model;
 
 public class Rewards {
-    private long customerId;
-	private long lastMonthRewardPoints;
-    private long lastSecondMonthRewardPoints;
-    private long lastThirdMonthRewardPoints;
-    private long totalRewards;
+    private String customerId;
+	private int lastMonthRewardPoints;
+    private int lastSecondMonthRewardPoints;
+    private int lastThirdMonthRewardPoints;
+    private int totalRewards;
 
-    public long getCustomerId() {
+    public String getCustomerId() {
         return customerId;
     }
 
-    public long getLastMonthRewardPoints() {
+    public int getLastMonthRewardPoints() {
 		return lastMonthRewardPoints;
 	}
 
-	public void setLastMonthRewardPoints(long lastMonthRewardPoints) {
+	public void setLastMonthRewardPoints(int lastMonthRewardPoints) {
 		this.lastMonthRewardPoints = lastMonthRewardPoints;
 	}
 
-	public long getLastSecondMonthRewardPoints() {
+	public int getLastSecondMonthRewardPoints() {
 		return lastSecondMonthRewardPoints;
 	}
 
-	public void setLastSecondMonthRewardPoints(long lastSecondMonthRewardPoints) {
+	public void setLastSecondMonthRewardPoints(int lastSecondMonthRewardPoints) {
 		this.lastSecondMonthRewardPoints = lastSecondMonthRewardPoints;
 	}
 
-	public long getLastThirdMonthRewardPoints() {
+	public int getLastThirdMonthRewardPoints() {
 		return lastThirdMonthRewardPoints;
 	}
 
-	public void setLastThirdMonthRewardPoints(long lastThirdMonthRewardPoints) {
+	public void setLastThirdMonthRewardPoints(int lastThirdMonthRewardPoints) {
 		this.lastThirdMonthRewardPoints = lastThirdMonthRewardPoints;
 	}
 
-	public void setCustomerId(long customerId) {
+	public void setCustomerId(String customerId) {
         this.customerId = customerId;
     }
 
     
 
-    public long getTotalRewards() {
+    public int getTotalRewards() {
         return totalRewards;
     }
 
-    public void setTotalRewards(long totalRewards) {
+    public void setTotalRewards(int totalRewards) {
         this.totalRewards = totalRewards;
     }
 }

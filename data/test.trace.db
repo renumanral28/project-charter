@@ -1,0 +1,3 @@
+2025-01-22 19:51:04 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "TRANSACTION" not found; SQL statement:
+select transactio0_.transaction_id as transact1_0_, transactio0_.customer_id as customer2_0_, transactio0_.amount as amount3_0_, transactio0_.transaction_date as transact4_0_ from transaction transactio0_ where transactio0_.customer_id=? and (transactio0_.transaction_date between ? and ?) [42102-200]
