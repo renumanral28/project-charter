@@ -1,5 +1,6 @@
 package com.rewards.entity;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 import javax.persistence.Column;
@@ -15,10 +16,12 @@ public class Transaction {
     @Id
     @GeneratedValue( strategy = GenerationType.IDENTITY)
     @Column(name = "TRANSACTION_ID")
-    private Long transactionId;
+    private String transactionId;
+
+
 
     @Column(name="CUSTOMER_ID")
-    private Long customerId;
+    private String customerId;
 
     @Column(name = "TRANSACTION_DATE")
     private Timestamp transactionDate;
@@ -26,20 +29,28 @@ public class Transaction {
     @Column(name = "AMOUNT")
     private double transactionAmount;
 
+    public Transaction() {
+    }
 
-    public Long getTransactionId() {
+    public Transaction(String customerId, double transactionAmount, Timestamp transactionDate) {
+        this.customerId = customerId;
+        this.transactionAmount = transactionAmount;
+        this.transactionDate = transactionDate;
+    }
+
+    public String getTransactionId() {
 		return transactionId;
 	}
 
-	public void setTransactionId(Long transactionId) {
+	public void setTransactionId(String transactionId) {
 		this.transactionId = transactionId;
 	}
 
-	public Long getCustomerId() {
+	public String getCustomerId() {
         return customerId;
     }
 
-    public void setCustomerId(Long customerId) {
+    public void setCustomerId(String customerId) {
         this.customerId = customerId;
     }
 
