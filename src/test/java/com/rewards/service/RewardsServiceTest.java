@@ -1,176 +1,180 @@
 package com.rewards.service;
 
 import com.rewards.entity.Transaction;
+import com.rewards.exception.CustomerNotFoundException;
+import com.rewards.exception.DatabaseException;
+import com.rewards.exception.InvalidInputException;
 import com.rewards.model.Rewards;
 import com.rewards.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.springframework.http.MediaType;
+import org.mockito.*;
+import org.springframework.dao.DataAccessException;
 
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class RewardsServiceTest {
 
-    @InjectMocks
-    private RewardsService rewardsService;
-
     @Mock
     private TransactionRepository transactionRepository;
+
+    @InjectMocks
+    private RewardsService rewardsService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
     }
 
-
+    // Normal Case for Rewards
     @Test
-    void testGetRewardsByCustomerId_withTransactions() {
-        String customerId = "1";
-        List<Transaction> transactions = Arrays.asList(
-                new Transaction(customerId, 60.0, Timestamp.valueOf("2025-01-10 10:00:00")),
-                new Transaction(customerId, 120.0, Timestamp.valueOf("2025-01-20 10:00:00"))
-        );
-        Mockito.when(transactionRepository.findAllByCustomerIdAndTransactionDateBetween(
-                        anyString(), any(), any()))
-                .thenReturn(transactions);
-        Rewards result = rewardsService.getRewardsByCustomerId(customerId);
-        assertNotNull(result);
-        assertEquals(300, result.getTotalRewards());
-    }
+    void testGetRewardsByCustomerId_Success() {
+        String customerId = "123";
+        List<Transaction> lastMonthTransactions = createTransactions(120.0, 60.0);
+        List<Transaction> lastSecondMonthTransactions = createTransactions(80.0, 55.0);
+        List<Transaction> lastThirdMonthTransactions = createTransactions(130.0);
+        when(transactionRepository.findAllByCustomerIdAndTransactionDateBetween(any(), any(), any()))
+                .thenReturn(lastMonthTransactions)
+                .thenReturn(lastSecondMonthTransactions)
+                .thenReturn(lastThirdMonthTransactions);
 
-    @Test
-    void testCalculateRewards_forTransaction() {
-        Transaction transaction1 = new Transaction("1", 60.0, Timestamp.valueOf(LocalDateTime.now()));
-        Transaction transaction2 = new Transaction("1", 120.0, Timestamp.valueOf(LocalDateTime.now()));
-        Transaction transaction3 = new Transaction("1", 30.0, Timestamp.valueOf(LocalDateTime.now()));
-        Long reward1 = rewardsService.calculateRewards(transaction1);
-        Long reward2 = rewardsService.calculateRewards(transaction2);
-        Long reward3 = rewardsService.calculateRewards(transaction3);
-        assertEquals(10L, reward1);
-        assertEquals(90L, reward2);
-        assertEquals(0L, reward3);
-    }
+        Rewards rewards = rewardsService.getRewardsByCustomerId(customerId);
 
-    @Test
-    void testGetDateBasedOnOffSetDays() {
-        int offset = 30;
-        Timestamp timestamp = rewardsService.getDateBasedOnOffSetDays(offset);
-        assertNotNull(timestamp);
-        assertTrue(timestamp.before(Timestamp.valueOf(LocalDateTime.now())));
-    }
-
-    @Test
-    void testGetRewardsByCustomerIdAndMonth() {
-        String customerId = "1";
-        String month = "2025-01";
-        List<Transaction> transactions = Arrays.asList(
-                new Transaction(customerId, 60.0, Timestamp.valueOf("2025-01-15 10:00:00")),
-                new Transaction(customerId, 120.0, Timestamp.valueOf("2025-01-20 10:00:00"))
-        );
-        long expectedTotalRewards = 100L;
-        when(transactionRepository.findAllByCustomerIdAndTransactionDateBetween(
-                eq(customerId),
-                any(Timestamp.class),
-                any(Timestamp.class)
-        )).thenReturn(transactions);
-
-        Rewards rewards = rewardsService.getRewardsByCustomerIdAndMonth(customerId, month);
         assertNotNull(rewards);
         assertEquals(customerId, rewards.getCustomerId());
-        assertEquals(expectedTotalRewards, rewards.getTotalRewards());
+        assertEquals(245, rewards.getTotalRewards());
+        assertEquals(100, rewards.getLastMonthRewardPoints());
+        assertEquals(35, rewards.getLastSecondMonthRewardPoints());
+        assertEquals(110, rewards.getLastThirdMonthRewardPoints());
     }
 
     @Test
-    void testGetRewardsByCustomerIdAndMonth_noTransactions() {
-        String customerId = "1";
-        String month = "2025-01";
-        when(transactionRepository.findAllByCustomerIdAndTransactionDateBetween(
-                eq(customerId),
-                any(Timestamp.class),
-                any(Timestamp.class)
-        )).thenReturn(Arrays.asList());
-        Rewards rewards = rewardsService.getRewardsByCustomerIdAndMonth(customerId, month);
-        assertNotNull(rewards);
-        assertEquals(customerId, rewards.getCustomerId());
-        assertEquals(0, rewards.getTotalRewards());
-    }
+    void testGetRewardsByCustomerId_InvalidCustomerId() {
+        String invalidCustomerId = "0";
 
-
-    @Test
-    void testCalculateRewards_AmountLessThan50() {
-        List<Transaction> transactions = Arrays.asList(
-                createTransaction(30,"1"),
-                createTransaction(40,"1"),
-                createTransaction(49,"1")
-        );
-
-        long rewardPoints = rewardsService.getRewardsPerMonth(transactions);
-        assertEquals(0, rewardPoints, "No reward points should be given for amounts below 50");
+        InvalidInputException exception = assertThrows(InvalidInputException.class, () -> {
+            rewardsService.getRewardsByCustomerId(invalidCustomerId);
+        });
+        assertEquals("Customer ID cannot be null, empty, or zero.", exception.getMessage());
     }
 
     @Test
-    void testCalculateRewards_AmountBetween50And100() {
-        List<Transaction> transactions = Arrays.asList(
-                createTransaction(60,"1"),
-                createTransaction(75,"1"),
-                createTransaction(99,"1")
-        );
+    void testGetRewardsByCustomerId_EmptyCustomerId() {
+        String emptyCustomerId = "";
 
-        long rewardPoints = rewardsService.getRewardsPerMonth(transactions);
-        assertEquals(84, rewardPoints, "Reward points calculation failed for amounts between 50 and 100");
+        InvalidInputException exception = assertThrows(InvalidInputException.class, () -> {
+            rewardsService.getRewardsByCustomerId(emptyCustomerId);
+        });
+        assertEquals("Customer ID cannot be null, empty, or zero.", exception.getMessage());
     }
 
     @Test
-    void testCalculateRewards_AmountGreaterThan100() {
-        List<Transaction> transactions = Arrays.asList(
-                createTransaction(110,"1"),
-                createTransaction(150,"1"),
-                createTransaction(200,"1")
-        );
+    void testGetRewardsByCustomerId_NoTransactionsFound() {
+        String customerId = "123";
+        when(transactionRepository.findAllByCustomerIdAndTransactionDateBetween(any(), any(), any()))
+                .thenReturn(Collections.emptyList());
 
-        long rewardPoints = rewardsService.getRewardsPerMonth(transactions);
-        assertEquals(470, rewardPoints, "Reward points calculation failed for amounts greater than 100");
+        CustomerNotFoundException exception = assertThrows(CustomerNotFoundException.class, () -> {
+            rewardsService.getRewardsByCustomerId(customerId);
+        });
+        assertEquals("No transactions found for customer ID: " + customerId, exception.getMessage());
     }
 
     @Test
-    void testCalculateRewards_AmountExactly100() {
-        List<Transaction> transactions = Arrays.asList(
-                createTransaction(100,"1")
-        );
+    void testGetRewardsByCustomerIdAndMonth_NoTransactionsFound() {
+        String customerId = "123";
+        String month = "01";
+        String year = "2025";
+        when(transactionRepository.findAllByCustomerIdAndTransactionDateBetween(any(), any(), any()))
+                .thenReturn(Collections.emptyList());
 
-        long rewardPoints = rewardsService.getRewardsPerMonth(transactions);
-        assertEquals(50, rewardPoints, "Reward points should be 50 for an exact amount of 100");
+        CustomerNotFoundException exception = assertThrows(CustomerNotFoundException.class, () -> {
+            rewardsService.getRewardsByCustomerIdAndMonth(customerId, month, year);
+        });
+        assertEquals("No transactions found for customer ID: " + customerId + " in 2025-01", exception.getMessage());
     }
 
     @Test
-    void testCalculateRewards_MixedTransactionAmounts() {
-        List<Transaction> transactions = Arrays.asList(
-                createTransaction(30,"1"),
-                createTransaction(60,"1"),
-                createTransaction(100,"1"),
-                createTransaction(150,"1")
-        );
+    void testGetRewardsByCustomerIdAndMonth_InvalidMonthFormat() {
+        String customerId = "123";
+        String month = "13";
+        String year = "2025";
 
-        long rewardPoints = rewardsService.getRewardsPerMonth(transactions);
-        assertEquals(210, rewardPoints, "Reward points calculation failed for mixed transactions");
+        InvalidInputException exception = assertThrows(InvalidInputException.class, () -> {
+            rewardsService.getRewardsByCustomerIdAndMonth(customerId, month, year);
+        });
+        assertEquals("Month and year cannot be null or empty.", exception.getMessage());
     }
 
-    private Transaction createTransaction(double amount , String customerId) {
+    @Test
+    void testCalculateRewards_TransactionExactly50() {
         Transaction transaction = new Transaction();
-        transaction.setCustomerId(customerId);
-        transaction.setTransactionAmount(amount);
-        transaction.setTransactionDate(Timestamp.from(Instant.now()));
-        return transaction;
+        transaction.setTransactionAmount(50.0);
+        long reward = rewardsService.calculateRewardPoints(transaction);
+
+        assertEquals(0, reward);
+    }
+
+    @Test
+    void testCalculateRewards_TransactionExactly100() {
+        Transaction transaction = new Transaction();
+        transaction.setTransactionAmount(100.0);
+
+        long reward = rewardsService.calculateRewardPoints(transaction);
+
+        assertEquals(50, reward);
+    }
+
+    @Test
+    void testCalculateRewards_NegativeAmount() {
+        Transaction transaction = new Transaction();
+        transaction.setTransactionAmount(-50.0);
+
+        InvalidInputException exception = assertThrows(InvalidInputException.class, () -> {
+            rewardsService.calculateRewardPoints(transaction);
+        });
+        assertEquals("Amount cannot be zero or negative.", exception.getMessage());
+    }
+
+    @Test
+    void testDatabaseException() {
+        String customerId = "123";
+        when(transactionRepository.findAllByCustomerIdAndTransactionDateBetween(any(), any(), any()))
+                .thenThrow(new DataAccessException("Database error") {});
+
+        DatabaseException exception = assertThrows(DatabaseException.class, () -> {
+            rewardsService.getRewardsByCustomerId(customerId);
+        });
+        assertTrue(exception.getMessage().contains("Error retrieving data for customer ID"));
+    }
+
+    @Test
+    void testTransactionsOnMonthBoundary() {
+        String customerId = "123";
+        String month = "01";
+        String year = "2025";
+        List<Transaction> transactions = createTransactions(120.0, 60.0);
+
+        when(transactionRepository.findAllByCustomerIdAndTransactionDateBetween(any(), any(), any()))
+                .thenReturn(transactions);
+
+        Rewards rewards = rewardsService.getRewardsByCustomerIdAndMonth(customerId, month, year);
+
+        assertNotNull(rewards);
+        assertEquals(100, rewards.getTotalRewards());
+    }
+
+    private List<Transaction> createTransactions(Double... amounts) {
+        List<Transaction> transactions = new java.util.ArrayList<>();
+        for (Double amount : amounts) {
+            Transaction transaction = new Transaction();
+            transaction.setTransactionAmount(amount);
+            transactions.add(transaction);
+        }
+        return transactions;
     }
 }
