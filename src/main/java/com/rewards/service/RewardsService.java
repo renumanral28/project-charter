@@ -42,11 +42,13 @@ public class RewardsService {
 
     public Rewards getRewardsByCustomerIdAndMonth(String customerId, String month, String year) {
         validateCustomerId(customerId);
-        validateMonthAndYear(month, year);
+        if (month == null || month.trim().isEmpty() || year == null || year.trim().isEmpty() || Integer.parseInt(month) > 12 || Integer.parseInt(month) < 1) {
+            throw new InvalidInputException("Month and year cannot be null or empty.");
+        }
 
         try {
             YearMonth yearMonth = YearMonth.of(Integer.parseInt(year), Integer.parseInt(month));
-            List<Transaction> transactions = getTransactionsForMonth(customerId, yearMonth);
+            List<Transaction> transactions =   transactionRepository.findAllByCustomerIdAndTransactionDateBetween(customerId, Timestamp.valueOf(yearMonth.atDay(1).atStartOfDay()), Timestamp.valueOf(yearMonth.atEndOfMonth().atTime(23, 59, 59)));
             if (transactions.isEmpty()) {
                 throw new CustomerNotFoundException("No transactions found for customer ID: " + customerId + " in " + year + "-" + month);
             }
@@ -61,22 +63,12 @@ public class RewardsService {
 
     private List<List<Transaction>> getLastThreeMonthsTransactions(String customerId) {
         return Arrays.asList(
-                getTransactions(customerId, getDateBasedOnOffsetDays(30), Timestamp.from(Instant.now())),
-                getTransactions(customerId, getDateBasedOnOffsetDays(60), getDateBasedOnOffsetDays(30)),
-                getTransactions(customerId, getDateBasedOnOffsetDays(90), getDateBasedOnOffsetDays(60))
+                transactionRepository.findAllByCustomerIdAndTransactionDateBetween(customerId, getDateBasedOnOffsetDays(30), Timestamp.from(Instant.now())),
+                transactionRepository.findAllByCustomerIdAndTransactionDateBetween(customerId, getDateBasedOnOffsetDays(60), getDateBasedOnOffsetDays(30)),
+                transactionRepository.findAllByCustomerIdAndTransactionDateBetween(customerId, getDateBasedOnOffsetDays(90), getDateBasedOnOffsetDays(60))
+
         );
     }
-
-    private List<Transaction> getTransactionsForMonth(String customerId, YearMonth yearMonth) {
-        Timestamp startTimestamp = Timestamp.valueOf(yearMonth.atDay(1).atStartOfDay());
-        Timestamp endTimestamp = Timestamp.valueOf(yearMonth.atEndOfMonth().atTime(23, 59, 59));
-        return getTransactions(customerId, startTimestamp, endTimestamp);
-    }
-
-    private List<Transaction> getTransactions(String customerId, Timestamp start, Timestamp end) {
-        return transactionRepository.findAllByCustomerIdAndTransactionDateBetween(customerId, start, end);
-    }
-
 
 
     private Rewards calculateRewards(String customerId, List<List<Transaction>> transactionsLists) {
@@ -88,7 +80,7 @@ public class RewardsService {
         rewards.setCustomerId(customerId);
         rewards.setTotalRewards(totalRewards);
         rewards.setTransaction(
-                mergeTransactions(transactionsLists) // Merge the transaction lists from the three months
+                mergeTransactions(transactionsLists) 
         );
         if (!transactionsLists.isEmpty()) rewards.setLastMonthRewardPoints((int) getRewardsPerMonth(transactionsLists.get(0)));
         if (transactionsLists.size() > 1) rewards.setLastSecondMonthRewardPoints((int) getRewardsPerMonth(transactionsLists.get(1)));
@@ -142,9 +134,6 @@ public class RewardsService {
         }
     }
 
-    private void validateMonthAndYear(String month, String year) {
-        if (month == null || month.trim().isEmpty() || year == null || year.trim().isEmpty() || Integer.parseInt(month) > 12 || Integer.parseInt(month) < 1) {
-            throw new InvalidInputException("Month and year cannot be null or empty.");
-        }
-    }
+
+
 }
