@@ -49,3 +49,4 @@ http://localhost:8081/rewards/1/2024/12
 To log into the H2 database to check the data in tables use following link:
 http://localhost:8081/h2  
 JDBC URL =jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MYSQL
+
